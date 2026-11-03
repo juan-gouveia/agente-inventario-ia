@@ -13,7 +13,7 @@ import tempfile
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Query, status
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_serializer, field_validator
 
 PRODUCTS_FILE = Path(__file__).resolve().parent.parent / "products.csv"
 FIELDS = ["id", "name", "quantity", "unit"]
@@ -29,6 +29,11 @@ class Product(BaseModel):
     name: str
     quantity: float
     unit: str
+
+    @field_serializer("quantity")
+    def serialize_quantity(self, value: float) -> int | float:
+        """Devuelve 8 en lugar de 8.0 cuando la cantidad no tiene decimales."""
+        return int(value) if value.is_integer() else value
 
 
 class ProductCreate(BaseModel):

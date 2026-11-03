@@ -10,6 +10,7 @@ Cada evento se añade a conversation_log.csv (solo adición).
 import csv
 import json
 import os
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -33,6 +34,11 @@ SYSTEM_PROMPT = """Eres el asistente de inventario de una tienda familiar de sum
 para cafeterías con dos locales. Hablas con Carla, la dueña, en español, de forma breve, \
 clara y cercana.
 
+Estilo:
+- Escribe en español de España y tutea a Carla: "tú tienes", "¿quieres...?", "puedes", \
+"dime", "avísame".
+- Puedes usar algún emoji con moderación: como mucho uno por respuesta y solo si aporta.
+
 Reglas:
 - Usa SIEMPRE las herramientas para consultar o cambiar el stock; nunca inventes cantidades.
 - Para actualizar un producto por su nombre, llama primero a list_products para obtener su \
@@ -44,10 +50,10 @@ antes de llamar a add_product.
 - Si un mensaje es ambiguo (varios productos posibles, cantidad poco clara), pregunta antes \
 de modificar nada.
 - Si una herramienta devuelve un error, explícaselo a Carla en lenguaje sencillo.
+- El stock nunca puede quedar negativo: si una salida supera lo disponible, no ofrezcas \
+registrarla igualmente; propón ajustar la cantidad o registrar antes una entrega.
 - Tras modificar el stock, confirma la cantidad resultante con su unidad. Si queda por \
-debajo de 10, avísalo.
-- Tus respuestas se muestran en una terminal: escribe en texto plano, sin Markdown \
-(nada de **negritas**, tablas ni encabezados). Para listas usa guiones simples."""
+debajo de 10, avísalo."""
 
 # ---------------------------------------------------------------------------
 # Definición de tools (formato function calling)
@@ -209,6 +215,67 @@ def log_event(actor: str, message: str, tool_call: str = "") -> None:
         ])
 
 # ---------------------------------------------------------------------------
+# Limpieza de Markdown (la respuesta se muestra en una terminal)
+# ---------------------------------------------------------------------------
+
+_TABLE_SEPARATOR = re.compile(r"^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?\s*$")
+
+
+def _table_row_to_text(line: str) -> str:
+    cells = [cell.strip() for cell in line.strip().strip("|").split("|") if cell.strip()]
+    if len(cells) <= 1:
+        return " ".join(cells)
+    return f"- {cells[0]}: {' '.join(cells[1:])}"
+
+
+def strip_markdown(text: str) -> str:
+    """Convierte la respuesta del LLM a texto plano legible en la terminal."""
+    lines = text.splitlines()
+    output = []
+    for i, line in enumerate(lines):
+        # Tablas: se descartan cabecera y separador; cada fila pasa a "- celda1: resto"
+        if _TABLE_SEPARATOR.match(line):
+            continue
+        if line.lstrip().startswith("|"):
+            is_header = i + 1 < len(lines) and _TABLE_SEPARATOR.match(lines[i + 1])
+            if not is_header:
+                output.append(_table_row_to_text(line))
+            continue
+        line = re.sub(r"^\s{0,3}#{1,6}\s+", "", line)          # encabezados
+        line = re.sub(r"^\s{0,3}>\s?", "", line)               # citas
+        line = re.sub(r"^(\s*)[*+]\s+", r"\1- ", line)         # viñetas * / + -> -
+        line = re.sub(r"(\*\*|__)(.+?)\1", r"\2", line)        # **negrita** / __negrita__
+        line = re.sub(r"(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])", r"\1", line)  # *cursiva*
+        line = re.sub(r"`([^`]*)`", r"\1", line)               # `código`
+        line = line.replace("**", "")                          # restos sueltos
+        output.append(line.rstrip())
+    # Colapsar líneas en blanco repetidas
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(output)).strip()
+
+
+_REPEATED_ANSWER = re.compile(r"(.{20,}?)(?:\s{0,4}\1)+", re.DOTALL)
+
+
+def remove_repetition(text: str) -> str:
+    """Elimina repeticiones que a veces genera el modelo:
+    - la respuesta entera duplicada, incluso pegada sin separación ("...¿Algo más?Tienes...")
+    - párrafos idénticos consecutivos."""
+    text = text.strip()
+    # Respuesta entera repetida 2+ veces (bloques de 20+ caracteres, para no tocar "jaja")
+    repeated = _REPEATED_ANSWER.fullmatch(text)
+    if repeated:
+        text = repeated.group(1).strip()
+    # Párrafos idénticos consecutivos
+    paragraphs = re.split(r"\n\s*\n", text)
+    kept = [p for i, p in enumerate(paragraphs) if i == 0 or p.strip() != paragraphs[i - 1].strip()]
+    return "\n\n".join(kept)
+
+
+def clean_answer(text: str) -> str:
+    """Limpieza final de la respuesta antes de mostrarla, guardarla en el historial y en el log."""
+    return remove_repetition(strip_markdown(text))
+
+# ---------------------------------------------------------------------------
 # Bucle del agente
 # ---------------------------------------------------------------------------
 
@@ -231,7 +298,7 @@ def run_turn(client: OpenAI, messages: list[dict], user_input: str) -> str:
 
         # Respuesta final: no hay tools pendientes -> fin del turno
         if not reply.tool_calls:
-            answer = reply.content or ""
+            answer = clean_answer(reply.content or "")
             messages.append({"role": "assistant", "content": answer})
             log_event("agent", answer)
             return answer

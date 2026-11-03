@@ -54,7 +54,7 @@ No se tocan `main.py`, `server.py` ni `learn.json` (son parte de la plantilla).
 - Todos los errores vía `HTTPException(status_code, detail="mensaje descriptivo")`.
 
 ## Fase 2 — Agente (`agent.py`) ✅ (completada)
-> Modelo por defecto cambiado a `openai/gpt-oss-120b` (`llama-3.3-70b-versatile` ya no está disponible en la cuenta de Groq). Probado de punta a punta contra Groq con la API en proceso (`TestClient`) y CSV temporales. Si falla el LLM a mitad de turno, el historial se revierte a su estado anterior. Respuestas en texto plano (sin Markdown).
+> Modelo por defecto cambiado a `openai/gpt-oss-120b` (`llama-3.3-70b-versatile` ya no está disponible en la cuenta de Groq). Probado de punta a punta contra Groq con la API en proceso (`TestClient`) y CSV temporales. Si falla el LLM a mitad de turno, el historial se revierte a su estado anterior. Respuestas en texto plano gracias a `strip_markdown()`.
 **Configuración**: `load_dotenv()`; cliente `OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")`; modelo desde `GROQ_MODEL` (por defecto `openai/gpt-oss-120b`); `API_URL` por defecto `http://127.0.0.1:8000`. Si falta la clave → mensaje claro y salida.
 
 **Comprobación inicial**: `GET /inventory` al arrancar; si falla, imprimir "La API no está en marcha, ejecuta `uvicorn api.app:app --reload`" y salir.
@@ -108,7 +108,10 @@ Reemplazar el contenido de la plantilla en ambos (inglés y español, mismo cont
 - Aviso: nunca subir `.env`.
 - Conservar la sección de contribuidores de 4Geeks al final.
 
-## Fase 5 — Verificación
+## Fase 5 — Verificación ✅ (22/22 OK)
+> Ejecutada con procesos reales (`uvicorn` en el puerto 8765 + `agent.py` por stdin) sobre una copia del proyecto. gpt-oss-120b filtró una vez su razonamiento interno, provocado por la regla "sin Markdown" del prompt. Solución: se quitó la regla y `strip_markdown()` limpia la respuesta final en el código. Repetido: 22/22 OK y 0 fugas en 6 intentos.
+> Ajustes de estilo: el prompt pide español de España con tuteo (sin voseo) y como mucho un emoji por respuesta, y prohíbe ofrecer stock negativo. La API devuelve las cantidades sin decimales como enteros (`field_serializer` en `Product`). Resultado: 0 voseo y 0 respuestas con más de un emoji en 12 respuestas; 22/22 OK.
+> Filtro de repeticiones: `clean_answer()` = `strip_markdown()` + `remove_repetition()` (respuesta entera repetida 2+ veces, incluso pegada, y párrafos idénticos consecutivos). 10/10 casos y 22/22 OK.
 1. `uv run uvicorn api.app:app --reload` y probar en `http://127.0.0.1:8000/docs`:
    - GET `/inventory` → 200 con la semilla.
    - POST duplicado → 409; POST válido → 201 y aparece en `products.csv`.

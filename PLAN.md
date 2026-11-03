@@ -27,7 +27,9 @@ No se tocan `main.py`, `server.py` ni `learn.json` (son parte de la plantilla).
   README.md / README.es.md
   ```
 
-## Fase 1 — API (`api/app.py`)
+## Fase 1 — API (`api/app.py`) ✅ (completada)
+> Verificada con `TestClient` sobre una copia temporal del CSV: 200/201/400/404/409/422 según lo esperado. `delta = 0` se rechaza con 422.
+
 **Datos (`products.csv`)**: columnas `id,name,quantity,unit`. Semilla de ~8 productos de cafetería (café arábica en grano – bolsas, leche de avena – litros, leche entera – litros, vasos 12oz – unidades, tapas – unidades, azúcar – kg, sirope de vainilla – botellas, filtros – unidades), algunos por debajo de 10 para probar alertas.
 
 **Helpers internos**:

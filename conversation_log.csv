@@ -1,0 +1,27 @@
+actor,message,tool_call,timestamp
+user,¿Qué stock tenemos?,,2026-11-03T15:25:19+01:00
+agent,{},list_products,2026-11-03T15:25:20+01:00
+tool,"[{""id"": 1, ""name"": ""Café arábica en grano"", ""quantity"": 25, ""unit"": ""bolsas""}, {""id"": 2, ""name"": ""Leche de avena"", ""quantity"": 8, ""unit"": ""litros""}, {""id"": 3, ""name"": ""Leche entera"", ""quantity"": 40, ""unit"": ""litros""}, {""id"": 4, ""name"": ""Vasos de cartón 12oz"", ""quantity"": 300, ""unit"": ""unidades""}, {""id"": 5, ""name"": ""Tapas para vasos 12oz"", ""quantity"": 6, ""unit"": ""unidades""}, {""id"": 6, ""name"": ""Azúcar blanco"", ""quantity"": 12.5, ""unit"": ""kg""}, {""id"": 7, ""name"": ""Sirope de vainilla"", ""quantity"": 4, ""unit"": ""botellas""}, {""id"": 8, ""name"": ""Filtros de papel"", ""quantity"": 150, ""unit"": ""unidades""}]",list_products,2026-11-03T15:25:20+01:00
+agent,"Aquí tienes el stock actual:
+
+- Café arábica en grano: 25 bolsas
+- Leche de avena: 8 litros
+- Leche entera: 40 litros
+- Vasos de cartón 12 oz: 300 unidades
+- Tapas para vasos 12 oz: 6 unidades
+- Azúcar blanco: 12.5 kg
+- Sirope de vainilla: 4 botellas
+- Filtros de papel: 150 unidades
+
+⚠️ Las tapas para vasos están por debajo de 10 unidades. Avísame si quieres pedir más.",,2026-11-03T15:25:21+01:00
+user,Vendimos una botella de sirope y 50 vasos de cartón 12 oz,,2026-11-03T15:25:51+01:00
+agent,"{""delta"":-1,""product_id"":7}",update_stock,2026-11-03T15:25:52+01:00
+tool,"{""id"": 7, ""name"": ""Sirope de vainilla"", ""quantity"": 3, ""unit"": ""botellas""}",update_stock,2026-11-03T15:25:52+01:00
+agent,"{""delta"":-50,""product_id"":4}",update_stock,2026-11-03T15:25:53+01:00
+tool,"{""id"": 4, ""name"": ""Vasos de cartón 12oz"", ""quantity"": 250, ""unit"": ""unidades""}",update_stock,2026-11-03T15:25:53+01:00
+agent,"He actualizado el stock:
+
+- Sirope de vainilla: 3 botellas (se ha vendido 1).
+- Vasos de cartón 12 oz: 250 unidades (se han vendido 50).
+
+Todo está bien. ¡Avísame si necesitas algo más!",,2026-11-03T15:25:53+01:00

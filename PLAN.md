@@ -15,7 +15,7 @@ No se tocan `main.py`, `server.py` ni `learn.json` (son parte de la plantilla).
 - `uv init` (si no existe `pyproject.toml`) y `uv add fastapi uvicorn openai python-dotenv httpx`
   - `httpx` para que el agente llame a la API (ya viene como dependencia de `openai`, pero se declara explícitamente).
 - Crear `.gitignore` con: `.env`, `.venv/`, `__pycache__/`, `*.pyc`.
-- Crear `.env.example` con `GROQ_API_KEY=tu_clave_aqui` (y opcionales `API_URL=http://127.0.0.1:8000`, `GROQ_MODEL=llama-3.3-70b-versatile`).
+- Crear `.env.example` con `GROQ_API_KEY=tu_clave_aqui` (y opcionales `API_URL=http://127.0.0.1:8000`, `GROQ_MODEL=openai/gpt-oss-120b`).
 - Estructura final:
   ```
   api/__init__.py
@@ -53,8 +53,9 @@ No se tocan `main.py`, `server.py` ni `learn.json` (son parte de la plantilla).
 - Declarar `/inventory/alerts` **antes** de `/inventory/{product_id}` no es estrictamente necesario (métodos distintos), pero mantener orden claro.
 - Todos los errores vía `HTTPException(status_code, detail="mensaje descriptivo")`.
 
-## Fase 2 — Agente (`agent.py`)
-**Configuración**: `load_dotenv()`; cliente `OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")`; modelo desde `GROQ_MODEL` (por defecto `llama-3.3-70b-versatile`); `API_URL` por defecto `http://127.0.0.1:8000`. Si falta la clave → mensaje claro y salida.
+## Fase 2 — Agente (`agent.py`) ✅ (completada)
+> Modelo por defecto cambiado a `openai/gpt-oss-120b` (`llama-3.3-70b-versatile` ya no está disponible en la cuenta de Groq). Probado de punta a punta contra Groq con la API en proceso (`TestClient`) y CSV temporales. Si falla el LLM a mitad de turno, el historial se revierte a su estado anterior. Respuestas en texto plano (sin Markdown).
+**Configuración**: `load_dotenv()`; cliente `OpenAI(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")`; modelo desde `GROQ_MODEL` (por defecto `openai/gpt-oss-120b`); `API_URL` por defecto `http://127.0.0.1:8000`. Si falta la clave → mensaje claro y salida.
 
 **Comprobación inicial**: `GET /inventory` al arrancar; si falla, imprimir "La API no está en marcha, ejecuta `uvicorn api.app:app --reload`" y salir.
 
@@ -80,7 +81,8 @@ Despacho mediante diccionario `TOOL_HANDLERS = {name: función}`. Cada handler d
 
 **CLI** (`main()`): banner, `input("Tú: ")`, salir con `salir`/`exit` o Ctrl+C/EOF (capturar `KeyboardInterrupt`/`EOFError`), imprimir `Agente: ...`.
 
-## Fase 3 — Registro (`conversation_log.csv`)
+## Fase 3 — Registro (`conversation_log.csv`) ✅ (implementada junto con la Fase 2)
+> `log_event` ya está en `agent.py` y verificado en la prueba e2e. Falta la comprobación con sesiones reales (relanzar y ver que se añaden filas), incluida en la Fase 5.
 - Función `log_event(actor, message, tool_call="")` en `agent.py`:
   - Abre en modo `"a"` con `newline=""` y `encoding="utf-8"`; si el fichero no existe o está vacío, escribe cabecera `actor,message,tool_call,timestamp`.
   - `timestamp = datetime.now().astimezone().isoformat(timespec="seconds")` (ISO 8601 con zona).

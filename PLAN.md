@@ -89,7 +89,8 @@ Despacho mediante diccionario `TOOL_HANDLERS = {name: función}`. Cada handler d
   - Usa `csv.writer` (escapa comas/saltos de línea de los mensajes); se cierra tras cada fila → nada se pierde con Ctrl+C.
 - Eventos registrados: mensaje del usuario, llamada a tool (actor `agent`), resultado de tool (actor `tool`), respuesta final (actor `agent`).
 
-## Fase 4 — README (`README.md` y `README.es.md`)
+## Fase 4 — README (`README.md` y `README.es.md`) ✅ (completada)
+> README.md en inglés y README.es.md en español. Los comandos de arranque asumen el `.venv` activado (`uvicorn ...` / `python agent.py`), porque uv no está instalado de forma global.
 Reemplazar el contenido de la plantilla en ambos (inglés y español, mismo contenido):
 - Descripción del proyecto y de las dos piezas.
 - Requisitos: Python 3.11+, `uv`, clave de Groq.

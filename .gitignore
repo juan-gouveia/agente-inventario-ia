@@ -1,0 +1,9 @@
+# Secretos
+.env
+
+# Entorno virtual
+.venv/
+
+# Python
+__pycache__/
+*.pyc
